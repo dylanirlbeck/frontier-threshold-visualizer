@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI developer obligation modeler</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.34.1/tabler-icons.min.css" />
+<style>
+  :root{
+    --surface-0:#f7f6f2; --surface-1:#f1efe8; --surface-2:#ffffff;
+    --text-primary:#2c2c2a; --text-secondary:#5f5e5a; --text-muted:#888780;
+    --text-accent:#185fa5; --text-success:#3b6d11; --text-danger:#a32d2d;
+    --border:rgba(0,0,0,0.1); --border-strong:rgba(0,0,0,0.18); --border-accent:#378add;
+    --bg-accent:#e6f1fb; --bg-danger:#fcebeb; --radius:8px;
+    --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --surface-0:#1c1c1a; --surface-1:#262623; --surface-2:#2f2f2b;
+      --text-primary:#eceae2; --text-secondary:#b4b2a9; --text-muted:#888780;
+      --text-accent:#85b7eb; --text-success:#97c459; --text-danger:#f09595;
+      --border:rgba(255,255,255,0.12); --border-strong:rgba(255,255,255,0.2); --border-accent:#378add;
+      --bg-accent:#0c447c;
+    }
+  }
+  *{box-sizing:border-box;}
+  body{
+    font-family:var(--font-sans); background:var(--surface-0); color:var(--text-primary);
+    margin:0; padding:24px; line-height:1.5; font-size:15px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .container{max-width:720px; margin:0 auto;}
+  h2,h3{font-weight:500; color:var(--text-primary); margin:0;}
+  input[type=text],input[type=number]{
+    font-family:inherit; font-size:14px; color:var(--text-primary);
+    background:var(--surface-2); border:0.5px solid var(--border-strong);
+    border-radius:var(--radius); padding:6px 10px; outline:none;
+  }
+  input[type=text]:focus,input[type=number]:focus{
+    border-color:var(--border-accent); box-shadow:0 0 0 2px var(--bg-accent);
+  }
+  input:disabled{cursor:not-allowed;}
+  button{
+    font-family:inherit; font-size:14px; color:var(--text-primary);
+    background:transparent; border:0.5px solid var(--border-strong);
+    border-radius:var(--radius); padding:7px 12px; cursor:pointer;
+    min-height:34px; transition:background 0.12s;
+  }
+  button:hover{background:var(--surface-1);}
+  button:active{transform:scale(0.98);}
+  .sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0;}
+  table{width:100%;}
+  em{font-style:italic;}
+</style>
+</head>
+<body>
+<div class="container">
+<h2 class="sr-only">Interactive tool for modeling tiered thresholds and the obligations they impose on AI developers, with drag-and-drop assignment of obligations to tiers and import/export of scenarios.</h2>
+
+<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; margin-bottom:1.25rem;">
+  <div style="font-size:13px; color:var(--text-secondary); max-width:380px; line-height:1.5;">
+    Drag an obligation onto a tier to attach it — or tap a chip, then tap a tier. A firm joins a tier if it meets the revenue floor <em>or</em> the AI R&D floor; obligations stack cumulatively.
+  </div>
+  <div style="display:flex; gap:8px; flex:0 0 auto; flex-wrap:wrap;">
+    <button id="import-btn"><i class="ti ti-upload" style="font-size:15px; vertical-align:-2px; margin-right:5px" aria-hidden="true"></i>Import</button>
+    <button id="export-btn"><i class="ti ti-download" style="font-size:15px; vertical-align:-2px; margin-right:5px" aria-hidden="true"></i>Export</button>
+    <button id="reset-btn"><i class="ti ti-refresh" style="font-size:15px; vertical-align:-2px; margin-right:5px" aria-hidden="true"></i>Reset</button>
+    <input type="file" id="import-file" accept="application/json,.json" style="display:none;" />
+  </div>
+</div>
+
+<div id="import-error" style="display:none; align-items:center; gap:8px; background:var(--bg-danger); color:var(--text-danger); font-size:13px; padding:8px 12px; border-radius:var(--radius); margin-bottom:1rem;">
+  <i class="ti ti-alert-triangle" style="font-size:16px" aria-hidden="true"></i>
+  <span id="import-error-text"></span>
+</div>
+
+<div id="assign-hint" style="display:none; align-items:center; gap:8px; background:var(--bg-accent); color:var(--text-accent); font-size:13px; padding:8px 12px; border-radius:var(--radius); margin-bottom:1rem;">
+  <i class="ti ti-hand-finger" style="font-size:16px" aria-hidden="true"></i>
+  <span id="assign-hint-text">Now tap a tier to place this obligation.</span>
+  <button id="assign-cancel" style="margin-left:auto; height:26px; min-height:0; padding:2px 10px; font-size:12px;">Cancel</button>
+</div>
+
+<div id="tiers-wrap" style="margin-bottom:1.25rem;"></div>
+
+<button id="add-tier" style="margin-bottom:2rem;"><i class="ti ti-plus" style="font-size:15px; vertical-align:-2px; margin-right:5px" aria-hidden="true"></i>Add tier</button>
+
+<div style="background:var(--surface-1); border-radius:12px; padding:1rem 1.25rem; margin-bottom:2rem;">
+  <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+    <i class="ti ti-inbox" style="font-size:18px; color:var(--text-secondary)" aria-hidden="true"></i>
+    <h3 style="font-size:16px;">Unassigned obligations</h3>
+  </div>
+  <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px; line-height:1.5;">
+    New obligations land here. Drag or tap-assign them to a tier. Drop a tier's obligation back here to unassign it.
+  </div>
+  <div id="unassigned-zone" style="min-height:52px; border:1px dashed var(--border-strong); border-radius:var(--radius); padding:8px; display:flex; flex-wrap:wrap; gap:8px; align-content:flex-start; transition:background 0.12s, border-color 0.12s;"></div>
+  <div style="margin-top:12px; display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; align-items:end;">
+    <label style="font-size:11px; color:var(--text-secondary);">Title
+      <input type="text" id="new-title" placeholder="Pre-clearance filing" style="width:100%; height:32px; margin-top:2px;" />
+    </label>
+    <label style="font-size:11px; color:var(--text-secondary);">Reference (optional)
+      <input type="text" id="new-sec" placeholder="e.g. internal ref" style="width:100%; height:32px; margin-top:2px;" />
+    </label>
+    <label style="font-size:11px; color:var(--text-secondary); grid-column:1/-1;">Description
+      <input type="text" id="new-desc" placeholder="What the obligation requires" style="width:100%; height:32px; margin-top:2px;" />
+    </label>
+    <button id="add-obl" style="grid-column:1/-1;"><i class="ti ti-plus" style="font-size:15px; vertical-align:-2px; margin-right:5px" aria-hidden="true"></i>Create obligation</button>
+  </div>
+</div>
+
+<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:0.75rem;">
+  <div style="display:flex; align-items:center; gap:8px;">
+    <i class="ti ti-building" style="font-size:18px; color:var(--text-secondary)" aria-hidden="true"></i>
+    <h3 style="font-size:16px;">Regulated firms</h3>
+  </div>
+  <button id="add-firm" style="height:30px; min-height:0; padding:4px 10px; font-size:13px;"><i class="ti ti-plus" style="font-size:14px; vertical-align:-2px; margin-right:4px" aria-hidden="true"></i>Add firm</button>
+</div>
+<div style="font-size:12px; color:var(--text-muted); margin-bottom:1rem; line-height:1.5;">
+  Figures start empty. Enter your own, or import a saved scenario. Revenue and AI R&D spend in USD millions.
+</div>
+<div id="firms-wrap" style="margin-bottom:2rem;"></div>
+
+<div style="display:flex; align-items:center; gap:8px; margin-bottom:0.75rem;">
+  <i class="ti ti-table" style="font-size:18px; color:var(--text-secondary)" aria-hidden="true"></i>
+  <h3 style="font-size:16px;">Obligation matrix</h3>
+</div>
+<div id="matrix-wrap" style="overflow-x:auto;"></div>
+</div>
+
+<script>
+(function(){
+  let OID = 0;
+  const mkObl = (t,d,s) => ({ id:'o'+(++OID), t, d, s });
+  function baseline(){
+    return {
+      tiers:[
+        { id:'t1', name:'Tier 1', rev:100, revOn:true, rnd:1000, rndOn:false, removable:false,
+          obligations:[
+            mkObl('Pre-deployment transparency report','Publish a report on each new or substantially modified model covering capabilities, intended use, restrictions, risk assessments, and mitigations.',''),
+            mkObl('Safety-incident reporting','Report critical safety incidents to the regulator within a set window of discovery, with a shorter window for incidents posing imminent risk.','')
+          ]},
+        { id:'t2', name:'Tier 2', rev:1000, revOn:true, rnd:1000, rndOn:false, removable:false,
+          obligations:[
+            mkObl('Published safety framework','Write, implement, comply with, and publish a framework covering risk thresholds, model-weight security, and deployment decisions.',''),
+            mkObl('Third-party audit cycle','Retain a licensed third-party auditor, grant access, and undergo periodic audits and assessments reported to the regulator.','')
+          ]}
+      ],
+      unassigned:[],
+      firms:[
+        { name:'Firm A', rev:0, rnd:0 },
+        { name:'Firm B', rev:0, rnd:0 },
+        { name:'Firm C', rev:0, rnd:0 }
+      ]
+    };
+  }
+  const PALETTE=['#7f77dd','#1d9e75','#d85a30','#378add','#ba7517','#d4537e'];
+  let state, tiers, firms, unassigned, customCount, pendingAssign;
+  function load(s){ state=s; tiers=s.tiers; firms=s.firms; unassigned=s.unassigned; customCount=0; pendingAssign=null; }
+  load(baseline());
+
+  const fmt=n=>n===null||n===undefined||n===''?'—':'$'+Number(n).toLocaleString();
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const tierColor=i=>PALETTE[i%PALETTE.length];
+
+  function qualifies(f,t){
+    const revOK=t.revOn && Number(f.rev)>=Number(t.rev);
+    const rndOK=t.rndOn && Number(f.rnd)>=Number(t.rnd);
+    return revOK||rndOK;
+  }
+  const firmTiers=f=>tiers.map((t,i)=>({t,i})).filter(o=>qualifies(f,o.t));
+
+  function findObl(id){
+    for(let ti=0;ti<tiers.length;ti++){
+      const oi=tiers[ti].obligations.findIndex(o=>o.id===id);
+      if(oi>-1) return {loc:'tier', ti, oi, obl:tiers[ti].obligations[oi]};
+    }
+    const ui=unassigned.findIndex(o=>o.id===id);
+    if(ui>-1) return {loc:'unassigned', ui, obl:unassigned[ui]};
+    return null;
+  }
+  function moveObl(id, target){
+    const f=findObl(id); if(!f) return;
+    const obl = f.loc==='tier' ? tiers[f.ti].obligations.splice(f.oi,1)[0] : unassigned.splice(f.ui,1)[0];
+    if(target==='unassigned') unassigned.push(obl);
+    else tiers[target].obligations.push(obl);
+    renderAll();
+  }
+
+  function chipHTML(o){
+    return `<div class="obl-chip" draggable="true" data-id="${o.id}" tabindex="0" role="button"
+      style="display:flex; gap:6px; align-items:flex-start; background:var(--surface-2); border:0.5px solid var(--border-strong); border-radius:var(--radius); padding:6px 8px; cursor:grab; max-width:100%;">
+      <i class="ti ti-grip-vertical" style="font-size:14px; color:var(--text-muted); margin-top:2px; flex:0 0 auto;" aria-hidden="true"></i>
+      <div style="flex:1; min-width:0;">
+        <div style="font-size:12.5px; font-weight:500; display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
+          ${esc(o.t)}
+          ${o.s?`<span style="font-size:10px; font-weight:400; padding:1px 5px; border-radius:4px; background:var(--surface-1); color:var(--text-secondary); white-space:nowrap;">${esc(o.s)}</span>`:''}
+        </div>
+        <div style="font-size:11px; color:var(--text-secondary); line-height:1.4; margin-top:2px;">${esc(o.d)}</div>
+      </div>
+      <button class="del-obl" data-id="${o.id}" aria-label="Delete obligation" style="flex:0 0 auto; height:22px; width:22px; min-height:0; padding:0; border:none; background:transparent;"><i class="ti ti-x" style="font-size:13px; color:var(--text-muted)" aria-hidden="true"></i></button>
+    </div>`;
+  }
+
+  function floorControl(i, key, label){
+    const t=tiers[i];
+    const on = key==='rev' ? t.revOn : t.rndOn;
+    const val = key==='rev' ? t.rev : t.rnd;
+    return `<div>
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--text-secondary); margin-bottom:4px;">
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+          <input type="checkbox" class="floor-toggle" data-i="${i}" data-k="${key}" ${on?'checked':''} style="width:15px; height:15px; margin:0; cursor:pointer;" />
+          <span>${label}</span>
+        </label>
+        <span style="font-weight:500; color:${on?'var(--text-primary)':'var(--text-muted)'};">${on?fmt(val)+'M':'off'}</span>
+      </div>
+      <input type="number" min="0" step="10" value="${val}" data-i="${i}" data-k="${key}" class="tier-num" ${on?'':'disabled'} style="width:100%; height:32px; ${on?'':'opacity:0.5;'}" />
+    </div>`;
+  }
+
+  function renderTiers(){
+    const wrap=document.getElementById('tiers-wrap'); wrap.innerHTML='';
+    tiers.forEach((tier,i)=>{
+      const col=tierColor(i);
+      const count=firms.filter(f=>qualifies(f,tier)).length;
+      const card=document.createElement('div');
+      card.style.cssText='background:var(--surface-2); border:0.5px solid var(--border); border-radius:12px; padding:1rem 1.25rem; margin-bottom:12px;';
+      card.innerHTML=`
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:12px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="width:12px; height:12px; border-radius:3px; flex:0 0 auto; background:${col};"></span>
+            <input type="text" value="${esc(tier.name)}" data-i="${i}" class="tier-name" style="font-size:15px; font-weight:500; border:none; background:transparent; padding:2px 4px; min-width:170px;" />
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; flex:0 0 auto;">
+            <span style="font-size:12px; color:var(--text-muted); white-space:nowrap;">${count} firm${count===1?'':'s'}</span>
+            ${tier.removable?`<button class="rm-tier" data-i="${i}" aria-label="Remove tier" style="padding:4px 8px; min-height:0; height:28px;"><i class="ti ti-trash" style="font-size:14px" aria-hidden="true"></i></button>`:''}
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:16px; margin-bottom:14px;">
+          ${floorControl(i,'rev','Revenue floor')}
+          ${floorControl(i,'rnd','AI R&D floor')}
+        </div>
+        <div style="border-top:0.5px solid var(--border); padding-top:10px;">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); margin-bottom:8px;">Obligations added at this tier</div>
+          <div class="drop-zone" data-tier="${i}" style="min-height:44px; border:1px dashed var(--border); border-radius:var(--radius); padding:6px; display:flex; flex-direction:column; gap:6px; transition:background 0.12s, border-color 0.12s;">
+            ${tier.obligations.length?tier.obligations.map(o=>chipHTML(o)).join(''):'<div class="empty-hint" style="font-size:11px; color:var(--text-muted); font-style:italic; padding:4px;">Drop an obligation here, or tap-assign.</div>'}
+          </div>
+        </div>`;
+      wrap.appendChild(card);
+    });
+  }
+
+  function renderUnassigned(){
+    const z=document.getElementById('unassigned-zone');
+    z.innerHTML = unassigned.length?unassigned.map(o=>chipHTML(o)).join(''):'<div class="empty-hint" style="font-size:11px; color:var(--text-muted); font-style:italic; padding:4px;">No unassigned obligations.</div>';
+  }
+
+  function renderFirms(){
+    const wrap=document.getElementById('firms-wrap'); wrap.innerHTML='';
+    const grid=document.createElement('div');
+    grid.style.cssText='display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px;';
+    firms.forEach((f,i)=>{
+      const fts=firmTiers(f);
+      const badges=fts.length?fts.map(o=>`<span style="font-size:11px; padding:2px 8px; border-radius:10px; white-space:nowrap; background:var(--surface-1); border:0.5px solid var(--border);">${esc(o.t.name)}</span>`).join(''):'<span style="font-size:11px; color:var(--text-muted); font-style:italic;">No tier</span>';
+      const card=document.createElement('div');
+      card.style.cssText='background:var(--surface-2); border:0.5px solid var(--border); border-radius:12px; padding:0.85rem 1rem;';
+      card.innerHTML=`
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:10px;">
+          <input type="text" value="${esc(f.name)}" data-i="${i}" class="firm-name" style="font-size:14px; font-weight:500; border:none; background:transparent; padding:2px 4px; flex:1; min-width:0;" />
+          <button class="rm-firm" data-i="${i}" aria-label="Remove firm" style="flex:0 0 auto; height:26px; width:26px; min-height:0; padding:0; border:none; background:transparent;"><i class="ti ti-trash" style="font-size:14px; color:var(--text-muted)" aria-hidden="true"></i></button>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+          <label style="font-size:11px; color:var(--text-secondary);">Revenue ($M)
+            <input type="number" min="0" step="10" value="${f.rev}" data-i="${i}" data-k="rev" class="firm-num" style="width:100%; height:30px; margin-top:2px;" />
+          </label>
+          <label style="font-size:11px; color:var(--text-secondary);">AI R&D ($M)
+            <input type="number" min="0" step="10" value="${f.rnd}" data-i="${i}" data-k="rnd" class="firm-num" style="width:100%; height:30px; margin-top:2px;" />
+          </label>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:5px;">${badges}</div>`;
+      grid.appendChild(card);
+    });
+    wrap.appendChild(grid);
+  }
+
+  function renderMatrix(){
+    const wrap=document.getElementById('matrix-wrap');
+    const allObl=[];
+    tiers.forEach((t,ti)=>t.obligations.forEach(o=>allObl.push({...o, ti})));
+    if(!allObl.length){ wrap.innerHTML='<div style="font-size:13px; color:var(--text-muted); font-style:italic; padding:1rem 0;">No obligations assigned to any tier.</div>'; return; }
+    let html='<table style="border-collapse:collapse; font-size:12px; min-width:520px;"><thead><tr>';
+    html+='<th style="text-align:left; padding:8px 10px; border-bottom:0.5px solid var(--border-strong); position:sticky; left:0; background:var(--surface-0);">Firm</th>';
+    allObl.forEach(o=>{ html+=`<th style="text-align:center; padding:8px 6px; border-bottom:0.5px solid var(--border-strong); font-weight:500; min-width:96px; vertical-align:bottom;"><div style="line-height:1.3;">${esc(o.t)}</div>${o.s?`<div style="font-size:10px; color:var(--text-muted); font-weight:400; margin-top:2px;">${esc(o.s)}</div>`:''}</th>`; });
+    html+='</tr></thead><tbody>';
+    firms.forEach(f=>{
+      const active=new Set(firmTiers(f).map(o=>o.i));
+      html+=`<tr><td style="padding:8px 10px; border-bottom:0.5px solid var(--border); font-weight:500; position:sticky; left:0; background:var(--surface-0); white-space:nowrap;">${esc(f.name)}</td>`;
+      allObl.forEach(o=>{ const on=active.has(o.ti); html+=`<td style="text-align:center; padding:8px 6px; border-bottom:0.5px solid var(--border);">${on?'<i class="ti ti-check" style="font-size:16px; color:var(--text-success)" aria-label="required"></i>':'<span style="color:var(--text-muted)" aria-label="not required">·</span>'}</td>`; });
+      html+='</tr>';
+    });
+    html+='</tbody></table>';
+    wrap.innerHTML=html;
+  }
+
+  function renderAll(){ renderTiers(); renderUnassigned(); renderFirms(); renderMatrix(); bind(); updateAssignHint(); }
+
+  function updateAssignHint(){
+    const bar=document.getElementById('assign-hint');
+    if(pendingAssign){
+      const f=findObl(pendingAssign);
+      document.getElementById('assign-hint-text').textContent = f?`Placing "${f.obl.t}" — tap a tier, or the unassigned area.`:'Tap a destination.';
+      bar.style.display='flex';
+      document.querySelectorAll('.drop-zone, #unassigned-zone').forEach(z=>{ z.style.borderColor='var(--border-accent)'; z.style.background='var(--bg-accent)'; });
+    } else {
+      bar.style.display='none';
+      document.querySelectorAll('.drop-zone').forEach(z=>{ z.style.borderColor='var(--border)'; z.style.background='transparent'; });
+      const uz=document.getElementById('unassigned-zone'); if(uz){ uz.style.borderColor='var(--border-strong)'; uz.style.background='transparent'; }
+    }
+  }
+
+  function refocus(sel){ const s=document.querySelector(sel); if(s){s.focus(); if(s.type==='number'||s.type==='text'){const val=s.value;s.value='';s.value=val;}} }
+
+  function bind(){
+    document.querySelectorAll('.floor-toggle').forEach(cb=>cb.addEventListener('change',e=>{
+      const i=+e.target.dataset.i,k=e.target.dataset.k;
+      tiers[i][k==='rev'?'revOn':'rndOn']=e.target.checked; renderAll();
+    }));
+    document.querySelectorAll('.tier-num').forEach(inp=>inp.addEventListener('input',e=>{
+      const i=+e.target.dataset.i,k=e.target.dataset.k;
+      tiers[i][k]=e.target.value===''?0:Number(e.target.value); renderAll();
+      refocus(`.tier-num[data-i="${i}"][data-k="${k}"]`);
+    }));
+    document.querySelectorAll('.tier-name').forEach(inp=>inp.addEventListener('input',e=>{ tiers[+e.target.dataset.i].name=e.target.value; renderMatrix(); renderFirms(); }));
+    document.querySelectorAll('.rm-tier').forEach(b=>b.addEventListener('click',e=>{
+      const i=+e.currentTarget.dataset.i;
+      tiers[i].obligations.forEach(o=>unassigned.push(o));
+      tiers.splice(i,1); renderAll();
+    }));
+    document.querySelectorAll('.firm-name').forEach(inp=>inp.addEventListener('input',e=>{ firms[+e.target.dataset.i].name=e.target.value; renderMatrix();
+      refocus(`.firm-name[data-i="${e.target.dataset.i}"]`);
+    }));
+    document.querySelectorAll('.firm-num').forEach(inp=>inp.addEventListener('input',e=>{
+      const i=+e.target.dataset.i,k=e.target.dataset.k;
+      firms[i][k]=e.target.value===''?0:Number(e.target.value); renderAll();
+      refocus(`.firm-num[data-i="${i}"][data-k="${k}"]`);
+    }));
+    document.querySelectorAll('.rm-firm').forEach(b=>b.addEventListener('click',e=>{
+      firms.splice(+e.currentTarget.dataset.i,1); renderAll();
+    }));
+
+    document.querySelectorAll('.del-obl').forEach(b=>b.addEventListener('click',e=>{
+      e.stopPropagation();
+      const id=e.currentTarget.dataset.id, f=findObl(id);
+      if(!f) return;
+      if(f.loc==='tier') tiers[f.ti].obligations.splice(f.oi,1); else unassigned.splice(f.ui,1);
+      if(pendingAssign===id) pendingAssign=null;
+      renderAll();
+    }));
+
+    document.querySelectorAll('.obl-chip').forEach(chip=>{
+      chip.addEventListener('dragstart',e=>{ e.dataTransfer.setData('text/plain',chip.dataset.id); e.dataTransfer.effectAllowed='move'; chip.style.opacity='0.4'; });
+      chip.addEventListener('dragend',()=>{ chip.style.opacity='1'; });
+      const tapAssign=e=>{
+        if(e.target.closest('.del-obl')) return;
+        pendingAssign = pendingAssign===chip.dataset.id ? null : chip.dataset.id;
+        updateAssignHint();
+      };
+      chip.addEventListener('click',tapAssign);
+      chip.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); tapAssign(e); } });
+    });
+
+    const zones=[...document.querySelectorAll('.drop-zone')];
+    const uz=document.getElementById('unassigned-zone');
+    if(uz) zones.push(uz);
+    zones.forEach(z=>{
+      const target = z.id==='unassigned-zone' ? 'unassigned' : +z.dataset.tier;
+      z.addEventListener('dragover',e=>{ e.preventDefault(); z.style.background='var(--bg-accent)'; z.style.borderColor='var(--border-accent)'; });
+      z.addEventListener('dragleave',()=>{ if(!pendingAssign){ z.style.background='transparent'; z.style.borderColor = z.id==='unassigned-zone'?'var(--border-strong)':'var(--border)'; } });
+      z.addEventListener('drop',e=>{ e.preventDefault(); const id=e.dataTransfer.getData('text/plain'); if(id) moveObl(id,target); });
+      z.addEventListener('click',e=>{
+        if(!pendingAssign) return;
+        if(e.target.closest('.obl-chip')) return;
+        moveObl(pendingAssign,target); pendingAssign=null;
+      });
+    });
+  }
+
+  document.getElementById('add-obl').addEventListener('click',()=>{
+    const t=document.getElementById('new-title').value.trim();
+    if(!t) { document.getElementById('new-title').focus(); return; }
+    const d=document.getElementById('new-desc').value.trim()||'(no description)';
+    const s=document.getElementById('new-sec').value.trim();
+    unassigned.push(mkObl(t,d,s));
+    document.getElementById('new-title').value='';
+    document.getElementById('new-desc').value='';
+    document.getElementById('new-sec').value='';
+    renderAll();
+    document.getElementById('unassigned-zone').scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+
+  document.getElementById('add-tier').addEventListener('click',()=>{
+    customCount++;
+    tiers.push({ id:'custom'+customCount, name:'New tier', rev:5000, revOn:true, rnd:1000, rndOn:false, removable:true, obligations:[] });
+    tiers.sort((a,b)=>{ const av=a.revOn?a.rev:Infinity, bv=b.revOn?b.rev:Infinity; return av-bv; });
+    renderAll();
+  });
+
+  document.getElementById('add-firm').addEventListener('click',()=>{
+    firms.push({ name:'New firm', rev:0, rnd:0 });
+    renderAll();
+  });
+
+  document.getElementById('assign-cancel').addEventListener('click',()=>{ pendingAssign=null; updateAssignHint(); });
+
+  document.getElementById('reset-btn').addEventListener('click',()=>{
+    if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    load(baseline());
+    renderAll();
+  });
+
+  function showImportError(msg){
+    const bar=document.getElementById('import-error');
+    document.getElementById('import-error-text').textContent=msg;
+    bar.style.display='flex';
+    setTimeout(()=>{ bar.style.display='none'; }, 5000);
+  }
+
+  document.getElementById('export-btn').addEventListener('click',()=>{
+    const payload={ version:1, exported:new Date().toISOString(), tiers, firms, unassigned };
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+    a.href=url; a.download=`obligation-model-${stamp}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('import-btn').addEventListener('click',()=>{
+    document.getElementById('import-file').click();
+  });
+
+  document.getElementById('import-file').addEventListener('change',e=>{
+    const file=e.target.files[0];
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        if(!Array.isArray(data.tiers) || !Array.isArray(data.firms) || !Array.isArray(data.unassigned))
+          throw new Error('missing tiers, firms, or unassigned');
+        let maxId=0;
+        const scanId=o=>{ const m=/^o(\d+)$/.exec(o.id||''); if(m) maxId=Math.max(maxId,+m[1]); };
+        data.tiers.forEach(t=>{ if(!Array.isArray(t.obligations)) throw new Error('a tier has no obligations array'); t.obligations.forEach(scanId); });
+        data.unassigned.forEach(scanId);
+        OID=maxId;
+        load({ tiers:data.tiers, firms:data.firms, unassigned:data.unassigned });
+        renderAll();
+      }catch(err){
+        showImportError('Could not import file: '+err.message);
+      }
+      e.target.value='';
+    };
+    reader.onerror=()=>{ showImportError('Could not read the file.'); e.target.value=''; };
+    reader.readAsText(file);
+  });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
