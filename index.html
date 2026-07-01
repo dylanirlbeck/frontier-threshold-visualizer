@@ -62,12 +62,17 @@
   em{font-style:italic;}
   .tabbar{display:flex; gap:2px; border-bottom:1px solid var(--border); margin-bottom:1.5rem;}
   .tab{
+    position:relative;
     font-family:inherit; font-size:14px; color:var(--text-secondary);
     background:transparent; border:none; border-bottom:2px solid transparent;
     border-radius:0; padding:9px 14px; cursor:pointer; min-height:0; margin-bottom:-1px;
   }
   .tab:hover{background:var(--surface-1); color:var(--text-primary);}
   .tab.active{color:var(--text-primary); border-bottom-color:var(--border-accent); font-weight:500;}
+  .tab.tab-edited::after{
+    content:''; position:absolute; top:7px; right:4px;
+    width:6px; height:6px; border-radius:50%; background:var(--text-accent);
+  }
   .theme-btn{
     margin-left:auto; align-self:center; width:34px; height:34px; min-height:0; padding:0;
     display:inline-flex; align-items:center; justify-content:center; font-size:16px;
@@ -176,6 +181,22 @@
   let OID = 0;
   const mkObl = (t,d,s) => ({ id:'o'+(++OID), t, d, s });
 
+  // Single source of truth for obligations shared across GAAIA and IL SB 315 — one title,
+  // one generalized description, and every applicable bill's section citation combined
+  // into a single string. Each factory returns a fresh instance (own id) per call, so tabs
+  // can still edit/drag/delete their own copy independently.
+  const SHARED_OBL = {
+    transparencyReports: () => mkObl('Model transparency reports','Publish a transparency report at or before releasing or substantially modifying a frontier model, including a contact mechanism, release date, supported languages, output modalities, intended uses, and any generally applicable restrictions.','GAAIA §111 · SB 315 §10'),
+    criticalSafetyIncidentReporting: () => mkObl('Critical safety-incident reporting','Report critical safety incidents to the regulator within a set window of discovery, with a shorter window for incidents posing imminent risk of death or serious injury.','GAAIA §111 · SB 315 §15'),
+    whistleblowerProtections: () => mkObl('Whistleblower protections','Prohibit retaliation against employees or contractors who disclose activity that violates the law or poses a substantial danger to public health or safety; requires maintaining internal reporting channels.','GAAIA §113 · SB 315 §20'),
+    frontierAIFramework: () => mkObl('Frontier AI framework','Write, implement, comply with, and publicly post a safety framework covering catastrophic-risk thresholds, assessment procedures, mitigations, and cybersecurity protections for unreleased model weights.','GAAIA §111 · SB 315 §10'),
+    independentAnnualAudit: () => mkObl('Independent annual third-party audit','Retain an independent auditor for annual audits of safety-framework compliance, granting access to records, personnel, and systems.','GAAIA §112 · SB 315 §10'),
+    civilPenalties: () => mkObl('Civil penalties','Subject to regulator enforcement for violations of the framework, audit, or disclosure provisions, with penalties assessed per violation; no private right of action.','GAAIA §112 · SB 315 §25'),
+    frontierRiskFrameworkDisclosure: () => mkObl('Frontier risk framework disclosure','Confidentially submit to the regulator a periodic report on catastrophic risk resulting from the developer\'s internal use of its frontier models, including internally deployed models.','GAAIA §111 · SB 315 §10'),
+    largeFrontierDeveloperDisclosure: () => mkObl('Large frontier developer disclosure','In the transparency report, include summaries of catastrophic-risk assessments, their results, the extent of third-party evaluator involvement, and other steps taken under the frontier AI framework.','SB 315 §10'),
+    embeddedIVO: () => mkObl('Embedded independent verification organizations','Government licenses independent verification organizations to assure that a company is meeting acceptable levels of risk mitigation.','GAAIA §112')
+  };
+
   // Frontier labs most likely covered by current US state frontier-safety laws
   // (CA SB 53, NY RAISE Act, IL SB 315). Analyst-consensus core set — no statute
   // names any company; coverage is inferred from public compute + revenue estimates.
@@ -191,13 +212,13 @@
       tiers:[
         { id:'t1', name:'Frontier developer', rev:100, revOn:false, rnd:1000, rndOn:false, frontierOn:true, removable:false,
           obligations:[
-            mkObl('Pre-deployment transparency report','Publish a report on each new or substantially modified model covering capabilities, intended use, restrictions, risk assessments, and mitigations.',''),
-            mkObl('Safety-incident reporting','Report critical safety incidents to the regulator within a set window of discovery, with a shorter window for incidents posing imminent risk.','')
+            mkObl('Model transparency reports','Publish a report on each new or substantially modified model covering capabilities, intended use, restrictions, risk assessments, and mitigations.',''),
+            mkObl('Critical safety-incident reporting','Report critical safety incidents to the regulator within a set window of discovery, with a shorter window for incidents posing imminent risk.','')
           ]},
         { id:'t2', name:'Large frontier developer', rev:1000, revOn:true, rnd:1000, rndOn:false, frontierOn:true, removable:false,
           obligations:[
-            mkObl('Published safety framework','Write, implement, comply with, and publish a framework covering risk thresholds, model-weight security, and deployment decisions.',''),
-            mkObl('Third-party audit cycle','Retain a licensed third-party auditor, grant access, and undergo periodic audits and assessments reported to the regulator.','')
+            mkObl('Frontier AI framework','Write, implement, comply with, and publish a framework covering risk thresholds, model-weight security, and deployment decisions.',''),
+            mkObl('Independent annual third-party audit','Retain a licensed third-party auditor, grant access, and undergo periodic audits and assessments reported to the regulator.','')
           ]}
       ],
       unassigned:[],
@@ -215,7 +236,7 @@
       id:'gaaia',
       name:'Great American AI Act (GAAIA)',
       status:'US House discussion draft · Jun 2026',
-      blurb:'Bipartisan Obernolte–Trahan federal draft. Two tiers keyed off a >10²⁶ FLOP frontier-model definition, with the heavier framework and audit duties layered on developers above $50M revenue.',
+      blurb:'Bipartisan Obernolte–Trahan federal draft. Two tiers keyed off a >10²⁶ FLOP frontier-model definition, with the heavier framework and audit duties layered on developers above $500M revenue.',
       about:'The Great American AI Act is a bipartisan federal discussion draft released by Reps. Jay Obernolte (R-CA) and Lori Trahan (D-MA) to create a national framework for AI governance. It defines "frontier developers" as companies that train frontier-scale AI models, with heavier transparency, safety-framework, and audit obligations applying to large frontier developers above a revenue threshold.',
       sources:[
         { label:'Obernolte, Trahan release a discussion draft of the Great American AI Act — official press release', url:'https://obernolte.house.gov/media/press-releases/obernolte-trahan-release-discussion-draft-great-american-ai-act' }
@@ -223,22 +244,22 @@
       verify:[],
       build:()=>({
         tiers:[
-          { id:'g1', name:'Frontier developer', rev:500, revOn:false, rnd:100, rndOn:false, frontierOn:true, removable:false,
+          { id:'g1', name:'Frontier developer', rev:50, revOn:true, rnd:100, rndOn:false, frontierOn:true, removable:false,
             obligations:[
-              mkObl('Transparency reports','Publish a transparency report at or before releasing or substantially modifying a frontier model, disclosing model information and intended uses.','GAAIA §111'),
-              mkObl('Critical safety-incident reporting','Report critical safety incidents to the CAISI Director within 15 days of discovery — within 24 hours where there is imminent risk of death or serious injury.','GAAIA §111'),
-              mkObl('Whistleblower protection','Prohibit retaliation against employees or contractors who report AI-related violations of federal law; remedies include reinstatement and double back pay.','GAAIA §113')
+              SHARED_OBL.transparencyReports(),
+              SHARED_OBL.criticalSafetyIncidentReporting(),
+              SHARED_OBL.whistleblowerProtections()
             ]},
-          { id:'g2', name:'Large frontier developer', rev:50, revOn:true, rnd:100, rndOn:false, frontierOn:true, removable:false,
+          { id:'g2', name:'Large frontier developer', rev:500, revOn:true, rnd:100, rndOn:false, frontierOn:true, removable:false,
             obligations:[
-              mkObl('Frontier AI framework','Write, implement, comply with, and publicly post a safety framework covering catastrophic-risk thresholds, assessment procedures, and mitigations.','GAAIA §111'),
-              mkObl('Model-weight security','Maintain cybersecurity protections for unreleased model weights as part of the published framework.','GAAIA §111'),
-              mkObl('Independent third-party audit','Retain a CAISI-licensed Independent Verification Organization for semi-annual audits of framework compliance, granting access to records, personnel, and systems.','GAAIA §112')
+              SHARED_OBL.frontierAIFramework(),
+              SHARED_OBL.independentAnnualAudit(),
+              SHARED_OBL.embeddedIVO(),
+              SHARED_OBL.civilPenalties(),
+              SHARED_OBL.frontierRiskFrameworkDisclosure()
             ]}
         ],
-        unassigned:[
-          mkObl('Access for open-source maintainers','Provide model access to critical open-source software maintainers (per secondary analysis; tier placement unconfirmed).','GAAIA Title I')
-        ],
+        unassigned:[],
         firms:labFirms(),
         lockFirms:false
       })
@@ -258,18 +279,22 @@
         tiers:[
           { id:'s1', name:'Frontier developer', rev:500, revOn:false, rnd:100, rndOn:false, frontierOn:true, removable:false,
             obligations:[
-              mkObl('Critical safety-incident reporting','Report critical safety incidents within 72 hours of discovery — within 24 hours where there is imminent risk of death or serious injury.','SB 315 §15'),
-              mkObl('Whistleblower protections','May not enforce rules preventing employees from disclosing activity that poses a specific and substantial danger to public health or safety; must maintain internal reporting channels.','SB 315 §20')
+              SHARED_OBL.transparencyReports(),
+              SHARED_OBL.criticalSafetyIncidentReporting(),
+              SHARED_OBL.whistleblowerProtections()
             ]},
           { id:'s2', name:'Large frontier developer', rev:500, revOn:true, rnd:100, rndOn:false, frontierOn:true, removable:false,
             obligations:[
-              mkObl('Frontier AI framework','Write, publish, implement, and comply with a documented safety framework covering catastrophic-risk assessment, capability thresholds, and cybersecurity controls.','SB 315 §10'),
-              mkObl('Large frontier developer disclosure','Before or at deployment, publish disclosures on intended uses, supported languages, output modalities, and summaries of catastrophic-risk assessments.','SB 315 §18'),
-              mkObl('Annual third-party audit','Retain an independent auditor for annual audits of safety-framework compliance and provide all materials reasonably necessary.','SB 315 §10'),
-              mkObl('Civil penalties','Subject to Attorney General enforcement — fines up to $1M per violation, up to $3M for subsequent violations; no private right of action.','SB 315 §25')
+              SHARED_OBL.frontierAIFramework(),
+              SHARED_OBL.largeFrontierDeveloperDisclosure(),
+              SHARED_OBL.independentAnnualAudit(),
+              SHARED_OBL.civilPenalties(),
+              SHARED_OBL.frontierRiskFrameworkDisclosure()
             ]}
         ],
-        unassigned:[],
+        unassigned:[
+          SHARED_OBL.embeddedIVO()
+        ],
         firms:labFirms(),
         lockFirms:false
       })
@@ -281,9 +306,87 @@
   function load(s){ state=s; tiers=s.tiers; firms=s.firms; unassigned=s.unassigned; lockFirms=!!s.lockFirms; customCount=0; pendingAssign=null; }
 
   // One live scenario per tab; edits mutate its arrays in place, so switching tabs preserves them.
+  const STORAGE_KEY='ftv-state-v1';
   const scenarios={};
   TABS.forEach(t=>{ scenarios[t.id]=t.build(); });
+  // Frozen presets, captured before any restore/edit, so non-modeler tabs can show
+  // whether the live scenario has drifted from what the tab resets to.
+  const defaults={};
+  TABS.forEach(t=>{ if(t.id!=='modeler') defaults[t.id]=t.build(); });
+
+  function deepEqual(a,b){
+    if(a===b) return true;
+    if(!a || !b || typeof a!=='object' || typeof b!=='object') return false;
+    if(Array.isArray(a)!==Array.isArray(b)) return false;
+    if(Array.isArray(a)){
+      if(a.length!==b.length) return false;
+      for(let i=0;i<a.length;i++) if(!deepEqual(a[i],b[i])) return false;
+      return true;
+    }
+    const ak=Object.keys(a), bk=Object.keys(b);
+    if(ak.length!==bk.length) return false;
+    for(const k of ak) if(!deepEqual(a[k],b[k])) return false;
+    return true;
+  }
+  // Obligation ids come from a shared auto-increment counter, so the same preset built
+  // twice gets different ids on otherwise-identical obligations; ignore id when diffing.
+  const normalizeObl=o=>({t:o.t, d:o.d, s:o.s});
+  const normalizeScenario=s=>({
+    tiers:(s.tiers||[]).map(t=>({...t, obligations:(t.obligations||[]).map(normalizeObl)})),
+    firms:s.firms||[],
+    unassigned:(s.unassigned||[]).map(normalizeObl),
+    lockFirms:!!s.lockFirms
+  });
+  function isEdited(tabId){
+    const def=defaults[tabId]; if(!def) return false;
+    const cur=scenarios[tabId]; if(!cur) return false;
+    return !deepEqual(normalizeScenario(cur), normalizeScenario(def));
+  }
+  function updateTabDirtyIndicators(){
+    TABS.forEach(t=>{
+      const btn=document.querySelector(`.tab[data-tab="${t.id}"]`);
+      if(!btn || !defaults[t.id]) return;
+      const dirty=isEdited(t.id);
+      btn.classList.toggle('tab-edited', dirty);
+      btn.title = dirty ? `${t.name} — edited from default (reset to restore the preset)` : '';
+    });
+  }
+
+  function maxOblId(scenariosObj){
+    let maxId=0;
+    const scan=o=>{ const m=/^o(\d+)$/.exec(o.id||''); if(m) maxId=Math.max(maxId,+m[1]); };
+    Object.values(scenariosObj).forEach(s=>{
+      (s.tiers||[]).forEach(t=>(t.obligations||[]).forEach(scan));
+      (s.unassigned||[]).forEach(scan);
+    });
+    return maxId;
+  }
+
+  function saveState(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version:1, activeTab, scenarios }));
+    }catch(e){}
+  }
+  function loadSavedState(){
+    try{
+      const raw=localStorage.getItem(STORAGE_KEY);
+      if(!raw) return null;
+      const data=JSON.parse(raw);
+      if(!data || typeof data!=='object' || !data.scenarios) return null;
+      return data;
+    }catch(e){ return null; }
+  }
+
   let activeTab='modeler';
+  const saved=loadSavedState();
+  if(saved){
+    TABS.forEach(t=>{
+      const s=saved.scenarios[t.id];
+      if(s && Array.isArray(s.tiers) && Array.isArray(s.firms) && Array.isArray(s.unassigned)) scenarios[t.id]=s;
+    });
+    if(saved.activeTab && TABS.some(t=>t.id===saved.activeTab)) activeTab=saved.activeTab;
+    OID=Math.max(OID, maxOblId(scenarios));
+  }
   load(scenarios[activeTab]);
 
   const fmt=n=>n===null||n===undefined||n===''?'—':'$'+Number(n).toLocaleString();
@@ -449,7 +552,7 @@
     wrap.innerHTML=html;
   }
 
-  function renderAll(){ renderTiers(); renderUnassigned(); renderFirms(); renderMatrix(); bind(); updateAssignHint(); }
+  function renderAll(){ renderTiers(); renderUnassigned(); renderFirms(); renderMatrix(); bind(); updateAssignHint(); updateTabDirtyIndicators(); saveState(); }
 
   function updateAssignHint(){
     const bar=document.getElementById('assign-hint');
@@ -483,13 +586,14 @@
       tiers[i][k]=e.target.value===''?0:Number(e.target.value); renderAll();
       refocus(`.tier-num[data-i="${i}"][data-k="${k}"]`);
     }));
-    document.querySelectorAll('.tier-name').forEach(inp=>inp.addEventListener('input',e=>{ tiers[+e.target.dataset.i].name=e.target.value; renderMatrix(); renderFirms(); }));
+    document.querySelectorAll('.tier-name').forEach(inp=>inp.addEventListener('input',e=>{ tiers[+e.target.dataset.i].name=e.target.value; renderMatrix(); renderFirms(); updateTabDirtyIndicators(); saveState(); }));
     document.querySelectorAll('.rm-tier').forEach(b=>b.addEventListener('click',e=>{
       const i=+e.currentTarget.dataset.i;
       tiers[i].obligations.forEach(o=>unassigned.push(o));
       tiers.splice(i,1); renderAll();
     }));
     document.querySelectorAll('.firm-name').forEach(inp=>inp.addEventListener('input',e=>{ firms[+e.target.dataset.i].name=e.target.value; renderMatrix();
+      updateTabDirtyIndicators(); saveState();
       refocus(`.firm-name[data-i="${e.target.dataset.i}"]`);
     }));
     document.querySelectorAll('.firm-num').forEach(inp=>inp.addEventListener('input',e=>{
@@ -677,6 +781,15 @@
     });
   }catch(e){}
   updateThemeIcon();
+
+  // Sync the tab bar to a restored non-default active tab (markup hardcodes Modeler as active).
+  document.querySelectorAll('.tab[data-tab]').forEach(t=>{
+    const on=t.dataset.tab===activeTab;
+    t.classList.toggle('active',on);
+    t.setAttribute('aria-selected',on?'true':'false');
+  });
+  const rb0=document.getElementById('reset-btn');
+  if(rb0){ const tab0=TABS.find(t=>t.id===activeTab); if(tab0) rb0.title='Reset the '+tab0.name+' tab to its preset'; }
 
   renderPresetNote();
   renderAll();
