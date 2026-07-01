@@ -51,15 +51,35 @@
   .sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0;}
   table{width:100%;}
   em{font-style:italic;}
+  .tabbar{display:flex; gap:2px; border-bottom:1px solid var(--border); margin-bottom:1.5rem;}
+  .tab{
+    font-family:inherit; font-size:14px; color:var(--text-secondary);
+    background:transparent; border:none; border-bottom:2px solid transparent;
+    border-radius:0; padding:9px 14px; cursor:pointer; min-height:0; margin-bottom:-1px;
+  }
+  .tab:hover{background:var(--surface-1); color:var(--text-primary);}
+  .tab.active{color:var(--text-primary); border-bottom-color:var(--border-accent); font-weight:500;}
+  .tpl-card{background:var(--surface-2); border:0.5px solid var(--border); border-radius:12px; padding:1.1rem 1.25rem; margin-bottom:14px;}
+  .tpl-verify{
+    display:flex; gap:8px; background:var(--bg-accent); color:var(--text-accent);
+    font-size:12px; line-height:1.5; padding:8px 12px; border-radius:var(--radius); margin-top:12px;
+  }
 </style>
 </head>
 <body>
 <div class="container">
 <h2 class="sr-only">Interactive tool for modeling tiered thresholds and the obligations they impose on AI developers, with drag-and-drop assignment of obligations to tiers and import/export of scenarios.</h2>
 
+<div class="tabbar" role="tablist">
+  <button class="tab active" data-view="modeler" role="tab" aria-selected="true">Modeler</button>
+  <button class="tab" data-view="templates" role="tab" aria-selected="false">Templates</button>
+</div>
+
+<div id="view-modeler" role="tabpanel">
+
 <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; margin-bottom:1.25rem;">
   <div style="font-size:13px; color:var(--text-secondary); max-width:380px; line-height:1.5;">
-    Drag an obligation onto a tier to attach it — or tap a chip, then tap a tier. A firm joins a tier if it meets the revenue floor <em>or</em> the AI R&D floor; obligations stack cumulatively.
+    Drag an obligation onto a tier to attach it — or tap a chip, then tap a tier. A firm joins a tier if it meets the tier's gates: training a frontier model where required, <em>and</em> clearing the revenue <em>or</em> AI R&D floor. Obligations stack cumulatively.
   </div>
   <div style="display:flex; gap:8px; flex:0 0 auto; flex-wrap:wrap;">
     <button id="import-btn"><i class="ti ti-upload" style="font-size:15px; vertical-align:-2px; margin-right:5px" aria-hidden="true"></i>Import</button>
@@ -114,7 +134,7 @@
   </div>
   <button id="add-firm" style="height:30px; min-height:0; padding:4px 10px; font-size:13px;"><i class="ti ti-plus" style="font-size:14px; vertical-align:-2px; margin-right:4px" aria-hidden="true"></i>Add firm</button>
 </div>
-<div style="font-size:12px; color:var(--text-muted); margin-bottom:1rem; line-height:1.5;">
+<div id="firms-desc" style="font-size:12px; color:var(--text-muted); margin-bottom:1rem; line-height:1.5;">
   Figures start empty. Enter your own, or import a saved scenario. Revenue and AI R&D spend in USD millions.
 </div>
 <div id="firms-wrap" style="margin-bottom:2rem;"></div>
@@ -124,37 +144,130 @@
   <h3 style="font-size:16px;">Obligation matrix</h3>
 </div>
 <div id="matrix-wrap" style="overflow-x:auto;"></div>
-</div>
+</div><!-- /view-modeler -->
+
+<div id="view-templates" role="tabpanel" style="display:none;">
+  <div style="font-size:13px; color:var(--text-secondary); max-width:560px; line-height:1.5; margin-bottom:1.25rem;">
+    Load a pre-set scenario to replace the current tiers, obligations, and firms. Each template encodes a specific bill's tier structure and duties. <strong>Loading a template overwrites your current work</strong> — export first if you want to keep it.
+  </div>
+  <div id="templates-wrap"></div>
+</div><!-- /view-templates -->
 
 <script>
 (function(){
   let OID = 0;
   const mkObl = (t,d,s) => ({ id:'o'+(++OID), t, d, s });
-  function baseline(){
+
+  // Frontier labs most likely covered by current US state frontier-safety laws
+  // (CA SB 53, NY RAISE Act, IL SB 315). Analyst-consensus core set — no statute
+  // names any company; coverage is inferred from public compute + revenue estimates.
+  // OpenAI/Anthropic/Google DeepMind/xAI/Meta are the clearly-covered majors;
+  // Microsoft is revenue-clear but analysts split on the frontier-developer trigger.
+  const LABS=['OpenAI','Anthropic','Google DeepMind','xAI','Meta','Microsoft'];
+  const labFirms=()=>LABS.map(name=>({ name, rev:0, rnd:0, frontier:true }));
+
+  function baseline(lock){
     return {
       tiers:[
-        { id:'t1', name:'Tier 1', rev:100, revOn:true, rnd:1000, rndOn:false, removable:false,
+        { id:'t1', name:'Frontier developer', rev:100, revOn:false, rnd:1000, rndOn:false, frontierOn:true, removable:false,
           obligations:[
             mkObl('Pre-deployment transparency report','Publish a report on each new or substantially modified model covering capabilities, intended use, restrictions, risk assessments, and mitigations.',''),
             mkObl('Safety-incident reporting','Report critical safety incidents to the regulator within a set window of discovery, with a shorter window for incidents posing imminent risk.','')
           ]},
-        { id:'t2', name:'Tier 2', rev:1000, revOn:true, rnd:1000, rndOn:false, removable:false,
+        { id:'t2', name:'Large frontier developer', rev:1000, revOn:true, rnd:1000, rndOn:false, frontierOn:true, removable:false,
           obligations:[
             mkObl('Published safety framework','Write, implement, comply with, and publish a framework covering risk thresholds, model-weight security, and deployment decisions.',''),
             mkObl('Third-party audit cycle','Retain a licensed third-party auditor, grant access, and undergo periodic audits and assessments reported to the regulator.','')
           ]}
       ],
       unassigned:[],
-      firms:[
-        { name:'Firm A', rev:0, rnd:0 },
-        { name:'Firm B', rev:0, rnd:0 },
-        { name:'Firm C', rev:0, rnd:0 }
-      ]
+      firms:labFirms(),
+      lockFirms: lock!==false
     };
   }
+  // Static bill presets. Thresholds/obligations are research-sourced but human-verifiable
+  // (see each template's `verify` list). The >10^26 FLOP compute gate that both bills use
+  // to define a "frontier model" has no axis in this tool, so it is modeled as an AI-R&D
+  // dollar proxy (~$100M) on the base tier — flagged in `verify` for the user to adjust.
+  const TEMPLATES=[
+    {
+      id:'gaaia',
+      name:'Great American AI Act (GAAIA)',
+      status:'US House discussion draft · Jun 2026',
+      blurb:'Bipartisan Obernolte–Trahan federal draft. Two tiers keyed off a >10²⁶ FLOP frontier-model definition, with the heavier framework and audit duties layered on developers above $500M revenue.',
+      verify:[
+        'Frontier developer = trains a frontier model (>10²⁶ FLOP). Modeled via the per-firm "Trains a frontier model" toggle — no dollar threshold. The 6 preset labs default to yes.',
+        'Large frontier developer = trains a frontier model AND revenue >$50M. The $50M figure is confirmed against the draft (several secondary analyses reported $500M — that was wrong); Trahan has described the exact figure as still being finalized.',
+        'Figures come from secondary analyses (FPF, Cato, DLA Piper, TechPolicy.Press), not the primary ~269-page text; Title I §111–113 carry a 3-year sunset. Confirm against the section-by-section summary.',
+        'Firms are pre-filled with the frontier-lab roster (zeroed, all marked as frontier-model developers). Every field is editable here — enter revenue, rename/add/remove firms, or toggle frontier-model status.'
+      ],
+      build:()=>({
+        tiers:[
+          { id:'g1', name:'Frontier developer', rev:500, revOn:false, rnd:100, rndOn:false, frontierOn:true, removable:false,
+            obligations:[
+              mkObl('Transparency reports','Publish a transparency report at or before releasing or substantially modifying a frontier model, disclosing model information and intended uses.','GAAIA §111'),
+              mkObl('Critical safety-incident reporting','Report critical safety incidents to the CAISI Director within 15 days of discovery — within 24 hours where there is imminent risk of death or serious injury.','GAAIA §111'),
+              mkObl('Whistleblower protection','Prohibit retaliation against employees or contractors who report AI-related violations of federal law; remedies include reinstatement and double back pay.','GAAIA §113')
+            ]},
+          { id:'g2', name:'Large frontier developer', rev:50, revOn:true, rnd:100, rndOn:false, frontierOn:true, removable:false,
+            obligations:[
+              mkObl('Frontier AI framework','Write, implement, comply with, and publicly post a safety framework covering catastrophic-risk thresholds, assessment procedures, and mitigations.','GAAIA §111'),
+              mkObl('Model-weight security','Maintain cybersecurity protections for unreleased model weights as part of the published framework.','GAAIA §111'),
+              mkObl('Independent third-party audit','Retain a CAISI-licensed Independent Verification Organization for semi-annual audits of framework compliance, granting access to records, personnel, and systems.','GAAIA §112')
+            ]}
+        ],
+        unassigned:[
+          mkObl('Access for open-source maintainers','Provide model access to critical open-source software maintainers (per secondary analysis; tier placement unconfirmed).','GAAIA Title I')
+        ],
+        firms:labFirms(),
+        lockFirms:false
+      })
+    },
+    {
+      id:'ilsb315',
+      name:'Illinois SB 315',
+      status:'Enacted · to Governor Jun 2026',
+      blurb:'Artificial Intelligence Safety Measures Act (104th GA). Same two-tier shape as GAAIA — a >10²⁶ FLOP frontier-model gate plus a $500M revenue gate for "large frontier developers", who carry the framework, disclosure, audit, and penalty duties.',
+      verify:[
+        'Frontier developer = anyone who trains a frontier model (>10²⁶ FLOP). Modeled via the per-firm "Trains a frontier model" toggle — SB 315 has no R&D/compute dollar threshold. The 6 preset labs default to yes.',
+        'Large frontier developer = trains a frontier model AND >$500M annual gross revenue (a true AND — now modeled correctly). Both figures confirmed against the ilga.gov full text.',
+        'Staggered effective dates: incident reporting, whistleblower, and disclosure from Jan 1 2027; framework and audit from Jan 1 2028. Confirm the §18 disclosure date (bill text says 2027; one summary said 2028).',
+        'Passed Senate 52–5 and House 110–0; sent to Gov. Pritzker Jun 26 2026.',
+        'Firms are pre-filled with the frontier-lab roster (zeroed, all marked as frontier-model developers). Every field is editable here — enter revenue, rename/add/remove firms, or toggle frontier-model status.'
+      ],
+      build:()=>({
+        tiers:[
+          { id:'s1', name:'Frontier developer', rev:500, revOn:false, rnd:100, rndOn:false, frontierOn:true, removable:false,
+            obligations:[
+              mkObl('Critical safety-incident reporting','Report critical safety incidents within 72 hours of discovery — within 24 hours where there is imminent risk of death or serious injury.','SB 315 §15'),
+              mkObl('Whistleblower protections','May not enforce rules preventing employees from disclosing activity that poses a specific and substantial danger to public health or safety; must maintain internal reporting channels.','SB 315 §20')
+            ]},
+          { id:'s2', name:'Large frontier developer', rev:500, revOn:true, rnd:100, rndOn:false, frontierOn:true, removable:false,
+            obligations:[
+              mkObl('Frontier AI framework','Write, publish, implement, and comply with a documented safety framework covering catastrophic-risk assessment, capability thresholds, and cybersecurity controls.','SB 315 §10'),
+              mkObl('Large frontier developer disclosure','Before or at deployment, publish disclosures on intended uses, supported languages, output modalities, and summaries of catastrophic-risk assessments.','SB 315 §18'),
+              mkObl('Annual third-party audit','Retain an independent auditor for annual audits of safety-framework compliance and provide all materials reasonably necessary.','SB 315 §10'),
+              mkObl('Civil penalties','Subject to Attorney General enforcement — fines up to $1M per violation, up to $3M for subsequent violations; no private right of action.','SB 315 §25')
+            ]}
+        ],
+        unassigned:[],
+        firms:labFirms(),
+        lockFirms:false
+      })
+    },
+    {
+      id:'baseline',
+      name:'Editable default scenario',
+      status:'Fully unlocked',
+      blurb:'The Modeler tab’s default tiers and frontier-lab roster, unlocked so every field is editable — add or remove firms, rename them, and restructure tiers and obligations.',
+      verify:[],
+      build:()=>baseline(false)
+    }
+  ];
+
   const PALETTE=['#7f77dd','#1d9e75','#d85a30','#378add','#ba7517','#d4537e'];
-  let state, tiers, firms, unassigned, customCount, pendingAssign;
-  function load(s){ state=s; tiers=s.tiers; firms=s.firms; unassigned=s.unassigned; customCount=0; pendingAssign=null; }
+  let state, tiers, firms, unassigned, customCount, pendingAssign, lockFirms;
+  function load(s){ state=s; tiers=s.tiers; firms=s.firms; unassigned=s.unassigned; lockFirms=!!s.lockFirms; customCount=0; pendingAssign=null; }
   load(baseline());
 
   const fmt=n=>n===null||n===undefined||n===''?'—':'$'+Number(n).toLocaleString();
@@ -162,9 +275,13 @@
   const tierColor=i=>PALETTE[i%PALETTE.length];
 
   function qualifies(f,t){
+    // A "frontier model" gate is an AND prerequisite (trains a >10^26 FLOP model),
+    // layered on top of the revenue-OR-R&D dollar floors.
+    if(t.frontierOn && !f.frontier) return false;
     const revOK=t.revOn && Number(f.rev)>=Number(t.rev);
     const rndOK=t.rndOn && Number(f.rnd)>=Number(t.rnd);
-    return revOK||rndOK;
+    if(t.revOn || t.rndOn) return revOK||rndOK;
+    return !!t.frontierOn; // no dollar floors: qualify iff the frontier gate is on (and passed above)
   }
   const firmTiers=f=>tiers.map((t,i)=>({t,i})).filter(o=>qualifies(f,o.t));
 
@@ -234,6 +351,10 @@
             ${tier.removable?`<button class="rm-tier" data-i="${i}" aria-label="Remove tier" style="padding:4px 8px; min-height:0; height:28px;"><i class="ti ti-trash" style="font-size:14px" aria-hidden="true"></i></button>`:''}
           </div>
         </div>
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; color:var(--text-secondary); margin-bottom:14px; padding:7px 10px; background:var(--surface-1); border-radius:var(--radius);">
+          <input type="checkbox" class="tier-frontier" data-i="${i}" ${tier.frontierOn?'checked':''} style="width:15px; height:15px; margin:0; cursor:pointer; flex:0 0 auto;" />
+          <span>Requires training a <strong>frontier model</strong> (&gt;10²⁶ FLOP)${tier.frontierOn&&!tier.revOn&&!tier.rndOn?' — the only gate':''}</span>
+        </label>
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:16px; margin-bottom:14px;">
           ${floorControl(i,'rev','Revenue floor')}
           ${floorControl(i,'rnd','AI R&D floor')}
@@ -255,17 +376,25 @@
 
   function renderFirms(){
     const wrap=document.getElementById('firms-wrap'); wrap.innerHTML='';
+    const addBtn=document.getElementById('add-firm'); if(addBtn) addBtn.style.display=lockFirms?'none':'';
+    const desc=document.getElementById('firms-desc');
+    if(desc) desc.textContent = lockFirms
+      ? 'This roster is the set of frontier labs most likely covered by current state frontier-safety laws — the names are fixed, and all are marked as training a frontier model. Enter each firm’s revenue and AI R&D spend (USD millions), or toggle frontier-model status, to see coverage. Load a template to unlock and edit the roster.'
+      : 'Enter figures, toggle frontier-model status, rename firms, or add and remove them. Revenue and AI R&D spend in USD millions.';
     const grid=document.createElement('div');
     grid.style.cssText='display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px;';
     firms.forEach((f,i)=>{
       const fts=firmTiers(f);
       const badges=fts.length?fts.map(o=>`<span style="font-size:11px; padding:2px 8px; border-radius:10px; white-space:nowrap; background:var(--surface-1); border:0.5px solid var(--border);">${esc(o.t.name)}</span>`).join(''):'<span style="font-size:11px; color:var(--text-muted); font-style:italic;">No tier</span>';
+      const nameRow = lockFirms
+        ? `<span style="font-size:14px; font-weight:500; padding:2px 4px; flex:1; min-width:0;">${esc(f.name)}</span>`
+        : `<input type="text" value="${esc(f.name)}" data-i="${i}" class="firm-name" style="font-size:14px; font-weight:500; border:none; background:transparent; padding:2px 4px; flex:1; min-width:0;" />
+          <button class="rm-firm" data-i="${i}" aria-label="Remove firm" style="flex:0 0 auto; height:26px; width:26px; min-height:0; padding:0; border:none; background:transparent;"><i class="ti ti-trash" style="font-size:14px; color:var(--text-muted)" aria-hidden="true"></i></button>`;
       const card=document.createElement('div');
       card.style.cssText='background:var(--surface-2); border:0.5px solid var(--border); border-radius:12px; padding:0.85rem 1rem;';
       card.innerHTML=`
         <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:10px;">
-          <input type="text" value="${esc(f.name)}" data-i="${i}" class="firm-name" style="font-size:14px; font-weight:500; border:none; background:transparent; padding:2px 4px; flex:1; min-width:0;" />
-          <button class="rm-firm" data-i="${i}" aria-label="Remove firm" style="flex:0 0 auto; height:26px; width:26px; min-height:0; padding:0; border:none; background:transparent;"><i class="ti ti-trash" style="font-size:14px; color:var(--text-muted)" aria-hidden="true"></i></button>
+          ${nameRow}
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
           <label style="font-size:11px; color:var(--text-secondary);">Revenue ($M)
@@ -275,6 +404,10 @@
             <input type="number" min="0" step="10" value="${f.rnd}" data-i="${i}" data-k="rnd" class="firm-num" style="width:100%; height:30px; margin-top:2px;" />
           </label>
         </div>
+        <label style="display:flex; align-items:center; gap:7px; cursor:pointer; font-size:11.5px; color:var(--text-secondary); margin-bottom:10px;">
+          <input type="checkbox" class="firm-frontier" data-i="${i}" ${f.frontier?'checked':''} style="width:14px; height:14px; margin:0; cursor:pointer; flex:0 0 auto;" />
+          <span>Trains a frontier model (&gt;10²⁶ FLOP)</span>
+        </label>
         <div style="display:flex; flex-wrap:wrap; gap:5px;">${badges}</div>`;
       grid.appendChild(card);
     });
@@ -322,6 +455,12 @@
     document.querySelectorAll('.floor-toggle').forEach(cb=>cb.addEventListener('change',e=>{
       const i=+e.target.dataset.i,k=e.target.dataset.k;
       tiers[i][k==='rev'?'revOn':'rndOn']=e.target.checked; renderAll();
+    }));
+    document.querySelectorAll('.tier-frontier').forEach(cb=>cb.addEventListener('change',e=>{
+      tiers[+e.target.dataset.i].frontierOn=e.target.checked; renderAll();
+    }));
+    document.querySelectorAll('.firm-frontier').forEach(cb=>cb.addEventListener('change',e=>{
+      firms[+e.target.dataset.i].frontier=e.target.checked; renderAll();
     }));
     document.querySelectorAll('.tier-num').forEach(inp=>inp.addEventListener('input',e=>{
       const i=+e.target.dataset.i,k=e.target.dataset.k;
@@ -463,6 +602,60 @@
     reader.readAsText(file);
   });
 
+  function switchView(v){
+    document.querySelectorAll('.tab').forEach(t=>{
+      const on=t.dataset.view===v;
+      t.classList.toggle('active',on);
+      t.setAttribute('aria-selected',on?'true':'false');
+    });
+    document.getElementById('view-modeler').style.display = v==='modeler'?'':'none';
+    document.getElementById('view-templates').style.display = v==='templates'?'':'none';
+  }
+  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchView(t.dataset.view)));
+
+  function tierGateText(t){
+    const parts=[];
+    if(t.revOn) parts.push('revenue ≥ $'+Number(t.rev).toLocaleString()+'M');
+    if(t.rndOn) parts.push('AI R&D ≥ $'+Number(t.rnd).toLocaleString()+'M');
+    return parts.length?parts.join(' or '):'no active floor';
+  }
+  function renderTemplates(){
+    const wrap=document.getElementById('templates-wrap'); wrap.innerHTML='';
+    TEMPLATES.forEach(tpl=>{
+      const preview=tpl.build();
+      const tierRows=preview.tiers.map(t=>
+        `<li style="margin-bottom:4px;"><strong>${esc(t.name)}</strong> — <span style="color:var(--text-secondary);">${tierGateText(t)}</span> · ${t.obligations.length} obligation${t.obligations.length===1?'':'s'}</li>`
+      ).join('');
+      const verify = tpl.verify&&tpl.verify.length
+        ? `<div class="tpl-verify"><i class="ti ti-flag" style="font-size:15px; flex:0 0 auto; margin-top:1px;" aria-hidden="true"></i><div><strong>Verify before relying on this:</strong><ul style="margin:4px 0 0; padding-left:18px;">${tpl.verify.map(v=>`<li style="margin-bottom:3px;">${esc(v)}</li>`).join('')}</ul></div></div>`
+        : '';
+      const card=document.createElement('div');
+      card.className='tpl-card';
+      card.innerHTML=`
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <h3 style="font-size:16px;">${esc(tpl.name)}</h3>
+            ${tpl.status?`<span style="font-size:11px; padding:2px 8px; border-radius:10px; background:var(--surface-1); color:var(--text-secondary); border:0.5px solid var(--border); white-space:nowrap;">${esc(tpl.status)}</span>`:''}
+          </div>
+          <button class="load-tpl" data-id="${tpl.id}" style="flex:0 0 auto;"><i class="ti ti-download" style="font-size:15px; vertical-align:-2px; margin-right:5px" aria-hidden="true"></i>Load template</button>
+        </div>
+        <div style="font-size:12.5px; color:var(--text-secondary); line-height:1.5; margin-bottom:10px;">${esc(tpl.blurb)}</div>
+        <ul style="list-style:none; margin:0; padding:0; font-size:12.5px;">${tierRows}</ul>
+        ${verify}`;
+      wrap.appendChild(card);
+    });
+    wrap.querySelectorAll('.load-tpl').forEach(b=>b.addEventListener('click',e=>{
+      const tpl=TEMPLATES.find(t=>t.id===e.currentTarget.dataset.id);
+      if(!tpl) return;
+      if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      load(tpl.build());
+      renderAll();
+      switchView('modeler');
+      window.scrollTo({top:0,behavior:'smooth'});
+    }));
+  }
+
+  renderTemplates();
   renderAll();
 })();
 </script>
