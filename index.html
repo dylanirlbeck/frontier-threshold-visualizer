@@ -100,6 +100,8 @@
   <button class="tab active" data-tab="modeler" role="tab" aria-selected="true">Modeler</button>
   <button class="tab" data-tab="gaaia" role="tab" aria-selected="false">GAAIA</button>
   <button class="tab" data-tab="ilsb315" role="tab" aria-selected="false">IL-SB315</button>
+  <button class="tab" data-tab="casb53" role="tab" aria-selected="false">CA SB-53</button>
+  <button class="tab" data-tab="nyraise" role="tab" aria-selected="false">NY RAISE Act</button>
   <button id="theme-btn" class="theme-btn" aria-label="Toggle light or dark mode" title="Toggle light/dark mode"><i class="ti ti-moon" aria-hidden="true"></i></button>
 </div>
 
@@ -274,6 +276,71 @@
               mkObl('Independent annual third-party audit','Retain an independent auditor for annual audits of safety-framework compliance and provide all materials reasonably necessary.','SB 315 §10'),
               mkObl('Civil penalties','Subject to Attorney General enforcement — fines up to $1M per violation, up to $3M for subsequent violations; no private right of action.','SB 315 §25'),
               mkObl('Frontier risk framework disclosure','Confidentially submit to the regulator a periodic report on catastrophic risk resulting from the developer\'s internal use of its frontier models, including internally deployed models.','SB 315 §10')
+            ]}
+        ],
+        unassigned:[],
+        firms:labFirms(),
+        lockFirms:false
+      })
+    },
+    {
+      id:'casb53',
+      name:'California SB 53',
+      status:'Enacted · effective Jan 1, 2026',
+      blurb:'Transparency in Frontier Artificial Intelligence Act (Sen. Wiener). Same two-tier shape as GAAIA/SB 315 — a >10²⁶ FLOP frontier-model gate plus a $500M revenue gate for "large frontier developers," who carry the framework, third-party risk assessment, and penalty duties.',
+      about:'California SB 53, the Transparency in Frontier Artificial Intelligence Act (TFAIA), is the first enacted U.S. frontier-AI law. Signed by Governor Newsom on September 29, 2025 and effective January 1, 2026, it requires frontier developers — those training models above a compute threshold — to publish transparency reports and report critical safety incidents, with a published safety framework, third-party catastrophic-risk assessments, and civil penalties applying to "large frontier developers" above a revenue threshold.',
+      sources:[
+        { label:'Governor Newsom signs SB 53 — official press release (gov.ca.gov)', url:'https://www.gov.ca.gov/2025/09/29/governor-newsom-signs-sb-53-advancing-californias-world-leading-artificial-intelligence-industry/' },
+        { label:'SB 53 — chaptered bill text (leginfo.legislature.ca.gov)', url:'https://leginfo.legislature.ca.gov/faces/billTextClient.xhtml?bill_id=202520260SB53' }
+      ],
+      verify:[],
+      build:()=>({
+        tiers:[
+          { id:'c1', name:'Frontier developer', rev:500, revOn:false, rnd:100, rndOn:false, frontierOn:true, removable:false,
+            obligations:[
+              mkObl('Model transparency reports','Publish a transparency report at or before releasing or substantially modifying a frontier model, including a contact mechanism, release date, supported languages, output modalities, intended uses, and any generally applicable restrictions.','SB 53 §22757.12'),
+              mkObl('Critical safety-incident reporting','Report critical safety incidents to the Office of Emergency Services within 15 days of discovery — within 24 hours where there is imminent risk of death or serious injury.','SB 53 §22757.13'),
+              mkObl('Whistleblower protections','Prohibit retaliation against employees or contractors who disclose activity that poses a specific and substantial danger to public health or safety; requires maintaining internal reporting channels.','SB 53 Lab. Code §1107')
+            ]},
+          { id:'c2', name:'Large frontier developer', rev:500, revOn:true, rnd:100, rndOn:false, frontierOn:true, removable:false,
+            obligations:[
+              mkObl('Frontier AI framework','Write, publish, implement, and comply with a safety framework covering catastrophic-risk thresholds, assessment procedures, governance practices, and cybersecurity for unreleased model weights.','SB 53 §22757.12'),
+              mkObl('Third-party catastrophic-risk assessment','Use third parties to assess the potential for catastrophic risks from the developer\'s frontier models and the effectiveness of mitigations, as part of the published framework.','SB 53 §22757.12'),
+              mkObl('Quarterly internal-use risk disclosure','Transmit to the Office of Emergency Services, every three months, a summary of catastrophic-risk assessments tied to the developer\'s internal use of its frontier models.','SB 53 §22757.12'),
+              mkObl('Civil penalties','Subject to Attorney General enforcement — fines up to $1M per violation; no private right of action.','SB 53 §22757.15')
+            ]}
+        ],
+        unassigned:[],
+        firms:labFirms(),
+        lockFirms:false
+      })
+    },
+    {
+      id:'nyraise',
+      name:'New York RAISE Act',
+      status:'Enacted (chapter-amended) · effective Jan 1, 2027',
+      blurb:'Responsible AI Safety and Education Act (Gov. Hochul). Signed Dec 2025, then chapter-amended in early 2026 to swap its original compute-cost gate for a $500M revenue gate — aligning "large frontier developer" with California SB 53. All frontier developers file transparency and incident reports with a new oversight office in the Department of Financial Services; large frontier developers add a published safety framework and disclosure filings.',
+      about:'New York\'s RAISE Act (Responsible AI Safety and Education Act) is a state law imposing safety and transparency obligations on developers of frontier AI models. Governor Hochul signed the bill on December 19, 2025 on the condition of negotiated chapter amendments, finalized in early 2026, which replaced the bill\'s original $100M compute-cost trigger with a $500M annual-revenue trigger for "large frontier developers" — matching California\'s SB 53. The law creates an AI oversight office within the state Department of Financial Services and takes effect January 1, 2027.',
+      sources:[
+        { label:'Governor Hochul signs the RAISE Act — official press release (governor.ny.gov)', url:'https://www.governor.ny.gov/news/governor-hochul-signs-nation-leading-legislation-require-ai-frameworks-ai-frontier-models' },
+        { label:'New York finalizes the RAISE Act (post-chapter-amendment) — Wiley legal alert', url:'https://www.wiley.law/alert-New-York-Finalizes-RAISE-Act-for-Frontier-AI-Models-Law-Takes-Effect-January-1-2027' }
+      ],
+      verify:[
+        'Exact New York General Business Law section numbers for individual obligations were not confirmed against the final chapter-amended text in the sources reviewed — cited here as "RAISE Act" rather than a specific GBL section.',
+        'The bill was chapter-amended after its Dec 19, 2025 signing; the $500M revenue gate and Jan 1, 2027 effective date reflect the finalized (post-amendment) version, not the originally introduced S6953B text.'
+      ],
+      build:()=>({
+        tiers:[
+          { id:'n1', name:'Frontier developer', rev:500, revOn:false, rnd:100, rndOn:false, frontierOn:true, removable:false,
+            obligations:[
+              mkObl('Model transparency reports','Publish a transparency report at or before deploying a new or substantially modified frontier model, including a contact mechanism, release date, supported languages, output modalities, intended uses, and usage restrictions.','RAISE Act'),
+              mkObl('Critical safety-incident reporting','Report critical safety incidents to the Department of Financial Services oversight office within 72 hours of reasonable belief the incident occurred — within 24 hours where there is imminent risk of death or serious injury.','RAISE Act')
+            ]},
+          { id:'n2', name:'Large frontier developer', rev:500, revOn:true, rnd:100, rndOn:false, frontierOn:true, removable:false,
+            obligations:[
+              mkObl('Frontier AI framework','Write, publish, implement, and annually update a safety framework covering catastrophic-risk thresholds, third-party catastrophic-risk assessments, governance practices, and cybersecurity for unreleased model weights.','RAISE Act'),
+              mkObl('Large developer disclosure filing','File a disclosure with the oversight office describing the developer\'s ownership structure and corporate affiliates.','RAISE Act'),
+              mkObl('Civil penalties','Subject to Attorney General enforcement — fines up to $1M for a first violation, up to $3M for subsequent violations; the oversight office may separately impose fines of up to $1,000 per day for disclosure-filing noncompliance. No private right of action.','RAISE Act')
             ]}
         ],
         unassigned:[],
