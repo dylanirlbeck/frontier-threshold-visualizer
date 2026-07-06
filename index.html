@@ -178,6 +178,10 @@
 <div id="matrix-wrap" style="overflow-x:auto;"></div>
 </div><!-- /view-modeler -->
 
+<div style="margin-top:1rem; padding-top:1rem; border-top:0.5px solid var(--border); font-size:11.5px; color:var(--text-muted); line-height:1.5;">
+  Revenue and AI R&amp;D figures shown for each firm are preliminary, unofficial estimates compiled from public reporting, filings, and funding disclosures — not audited or company-confirmed figures. Verify before relying on them.
+</div>
+
 <script>
 (function(){
   let OID = 0;
@@ -191,7 +195,25 @@
   // Reflection AI, Thinking Machines Lab, and ElevenLabs added per direct request —
   // default to "trains a frontier model" on but adjust the per-firm toggle as needed.
   const LABS=['OpenAI','Anthropic','Google DeepMind','xAI','Meta','Microsoft','Reflection AI','Thinking Machines Lab','ElevenLabs'];
-  const labFirms=()=>LABS.map(name=>({ name, rev:0, rnd:0, frontier:true }));
+  // Preliminary research-based figures (USD millions), current as of mid-2026 reporting.
+  // Public filers (Microsoft/Meta/Alphabet): most recent 10-K revenue + R&D, with "AI R&D"
+  // approximated by disclosed AI-infrastructure capex guidance (compute funds frontier training,
+  // and these firms don't break out a separate "AI R&D" line). Private labs: revenue from
+  // reported run-rate/ARR figures; AI R&D approximated from disclosed compute-deal sizes,
+  // funding raised, and burn rate, bounded below by the ~$100M/frontier-run baseline.
+  // All figures are estimates for a modeling tool, not audited — verify before relying on them.
+  const LAB_FIGURES={
+    'OpenAI':              { rev:25000,  rnd:28000 },  // ~$25B run-rate per The Information (Feb-May 2026); R&D/compute est. from disclosed ~$22B burn on $13B 2026 revenue plus Stargate/Azure/Oracle commitments
+    'Anthropic':           { rev:47000,  rnd:20000 },  // Series H disclosure, run-rate May 2026 (anthropic.com/news/series-h); R&D/compute est. from Google (~$40B) + Amazon (~$25B) compute commitments
+    'Google DeepMind':     { rev:402836, rnd:91447 },  // Alphabet FY2025 10-K revenue (filed); AI R&D approximated by FY2025 filed capex ($91.4B) — DeepMind's budget isn't broken out separately in filings
+    'xAI':                 { rev:2000,   rnd:15000 },  // FY2026 revenue target per reporting; R&D/compute est. from ~$1B/mo burn plus Colossus 2 buildout (~$18B hardware, 555k GPUs)
+    'Meta':                { rev:200970, rnd:72200 },  // Meta FY2025 10-K revenue (filed); AI R&D approximated by FY2025 filed capex ($72.2B) — FY2026 capex guidance raised to $125-145B
+    'Microsoft':           { rev:281724, rnd:88000 },  // Microsoft FY2025 (ended June 2025) 10-K revenue (filed); AI R&D approximated by capex incl. finance leases (~$88B, press-cited) — cash-flow-statement capex alone is $64.6B
+    'Reflection AI':       { rev:10,     rnd:1800 },   // Pre-revenue open frontier-model lab; R&D est. from SpaceX/Nvidia GB300 compute deal (~$150M/mo)
+    'Thinking Machines Lab': { rev:10,   rnd:750 },    // Pre-revenue/early Tinker usage; R&D est. from Nvidia + Google Cloud multi-year compute commitments
+    'ElevenLabs':          { rev:450,   rnd:25 }       // ARR est. (crossed $330M end-2025, ~$450-500M by spring 2026); R&D is specialized voice-model fine-tuning, not frontier pretraining
+  };
+  const labFirms=()=>LABS.map(name=>({ name, ...LAB_FIGURES[name], frontier:true }));
 
   function baseline(lock){
     return {
