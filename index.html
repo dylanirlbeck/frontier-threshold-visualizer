@@ -292,10 +292,13 @@
 
   function qualifies(f,t){
     // A "frontier model" gate is an AND prerequisite (trains a >10^26 FLOP model),
-    // layered on top of the revenue-OR-R&D dollar floors.
+    // layered on top of the dollar floors. With both floors on, tier.combine picks
+    // conjunctive ('and') or disjunctive ('or') treatment; absent means 'or', so
+    // exports and presets from before the field existed behave as they did.
     if(t.frontierOn && !f.frontier) return false;
     const revOK=t.revOn && Number(f.rev)>=Number(t.rev);
     const rndOK=t.rndOn && Number(f.rnd)>=Number(t.rnd);
+    if(t.revOn && t.rndOn) return t.combine==='and' ? revOK&&rndOK : revOK||rndOK;
     if(t.revOn || t.rndOn) return revOK||rndOK;
     return !!t.frontierOn; // no dollar floors: qualify iff the frontier gate is on (and passed above)
   }
@@ -349,6 +352,20 @@
     </div>`;
   }
 
+  // Only meaningful when both dollar floors are on; hidden otherwise.
+  function combineControl(i){
+    const t=tiers[i];
+    if(!(t.revOn&&t.rndOn)) return '';
+    const and=t.combine==='and';
+    return `<label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-secondary); margin:-6px 0 14px; cursor:pointer;">
+      <span>Firm qualifies by meeting</span>
+      <select class="tier-combine" data-i="${i}" style="height:26px; min-height:0; font-size:12px; padding:2px 6px;">
+        <option value="or"${and?'':' selected'}>either floor (OR)</option>
+        <option value="and"${and?' selected':''}>both floors (AND)</option>
+      </select>
+    </label>`;
+  }
+
   function renderTiers(){
     const wrap=document.getElementById('tiers-wrap'); wrap.innerHTML='';
     tiers.forEach((tier,i)=>{
@@ -375,6 +392,7 @@
           ${floorControl(i,'rev','Revenue floor')}
           ${floorControl(i,'rnd','AI R&D floor')}
         </div>
+        ${combineControl(i)}
         <div style="border-top:0.5px solid var(--border); padding-top:10px;">
           <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); margin-bottom:8px;">Obligations added at this tier</div>
           <div class="drop-zone" data-tier="${i}" style="min-height:44px; border:1px dashed var(--border); border-radius:var(--radius); padding:6px; display:flex; flex-direction:column; gap:6px; transition:background 0.12s, border-color 0.12s;">
@@ -475,6 +493,9 @@
     document.querySelectorAll('.tier-frontier').forEach(cb=>cb.addEventListener('change',e=>{
       tiers[+e.target.dataset.i].frontierOn=e.target.checked; renderAll();
     }));
+    document.querySelectorAll('.tier-combine').forEach(sel=>sel.addEventListener('change',e=>{
+      tiers[+e.target.dataset.i].combine=e.target.value; renderAll();
+    }));
     document.querySelectorAll('.firm-frontier').forEach(cb=>cb.addEventListener('change',e=>{
       firms[+e.target.dataset.i].frontier=e.target.checked; renderAll();
     }));
@@ -553,7 +574,7 @@
 
   document.getElementById('add-tier').addEventListener('click',()=>{
     customCount++;
-    tiers.push({ id:'custom'+customCount, name:'New tier', rev:5000, revOn:true, rnd:1000, rndOn:false, removable:true, obligations:[] });
+    tiers.push({ id:'custom'+customCount, name:'New tier', rev:5000, revOn:true, rnd:1000, rndOn:false, combine:'or', removable:true, obligations:[] });
     tiers.sort((a,b)=>{ const av=a.revOn?a.rev:Infinity, bv=b.revOn?b.rev:Infinity; return av-bv; });
     renderAll();
   });
