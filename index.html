@@ -181,22 +181,6 @@
   let OID = 0;
   const mkObl = (t,d,s) => ({ id:'o'+(++OID), t, d, s });
 
-  // Single source of truth for obligations shared across GAAIA and IL SB 315 — one title,
-  // one generalized description, and every applicable bill's section citation combined
-  // into a single string. Each factory returns a fresh instance (own id) per call, so tabs
-  // can still edit/drag/delete their own copy independently.
-  const SHARED_OBL = {
-    transparencyReports: () => mkObl('Model transparency reports','Publish a transparency report at or before releasing or substantially modifying a frontier model, including a contact mechanism, release date, supported languages, output modalities, intended uses, and any generally applicable restrictions.','GAAIA §111 · SB 315 §10'),
-    criticalSafetyIncidentReporting: () => mkObl('Critical safety-incident reporting','Report critical safety incidents to the regulator within a set window of discovery, with a shorter window for incidents posing imminent risk of death or serious injury.','GAAIA §111 · SB 315 §15'),
-    whistleblowerProtections: () => mkObl('Whistleblower protections','Prohibit retaliation against employees or contractors who disclose activity that violates the law or poses a substantial danger to public health or safety; requires maintaining internal reporting channels.','GAAIA §113 · SB 315 §20'),
-    frontierAIFramework: () => mkObl('Frontier AI framework','Write, implement, comply with, and publicly post a safety framework covering catastrophic-risk thresholds, assessment procedures, mitigations, and cybersecurity protections for unreleased model weights.','GAAIA §111 · SB 315 §10'),
-    independentAnnualAudit: () => mkObl('Independent annual third-party audit','Retain an independent auditor for annual audits of safety-framework compliance, granting access to records, personnel, and systems.','GAAIA §112 · SB 315 §10'),
-    civilPenalties: () => mkObl('Civil penalties','Subject to regulator enforcement for violations of the framework, audit, or disclosure provisions, with penalties assessed per violation; no private right of action.','GAAIA §112 · SB 315 §25'),
-    frontierRiskFrameworkDisclosure: () => mkObl('Frontier risk framework disclosure','Confidentially submit to the regulator a periodic report on catastrophic risk resulting from the developer\'s internal use of its frontier models, including internally deployed models.','GAAIA §111 · SB 315 §10'),
-    largeFrontierDeveloperDisclosure: () => mkObl('Large frontier developer disclosure','In the transparency report, include summaries of catastrophic-risk assessments, their results, the extent of third-party evaluator involvement, and other steps taken under the frontier AI framework.','SB 315 §10'),
-    embeddedIVO: () => mkObl('Embedded independent verification organizations','Government licenses independent verification organizations to assure that a company is meeting acceptable levels of risk mitigation.','GAAIA §112')
-  };
-
   // Frontier labs most likely covered by current US state frontier-safety laws
   // (CA SB 53, NY RAISE Act, IL SB 315). Analyst-consensus core set — no statute
   // names any company; coverage is inferred from public compute + revenue estimates.
@@ -246,17 +230,17 @@
         tiers:[
           { id:'g1', name:'Frontier developer', rev:50, revOn:true, rnd:100, rndOn:false, frontierOn:true, removable:false,
             obligations:[
-              SHARED_OBL.transparencyReports(),
-              SHARED_OBL.criticalSafetyIncidentReporting(),
-              SHARED_OBL.whistleblowerProtections()
+              mkObl('Model transparency reports','Publish a transparency report at or before releasing or substantially modifying a frontier model, disclosing model information and intended uses.','GAAIA §111'),
+              mkObl('Critical safety-incident reporting','Report critical safety incidents to the CAISI Director within 15 days of discovery — within 24 hours where there is imminent risk of death or serious injury.','GAAIA §111'),
+              mkObl('Whistleblower protections','Prohibit retaliation against employees or contractors who report AI-related violations of federal law; remedies include reinstatement and double back pay.','GAAIA §113')
             ]},
           { id:'g2', name:'Large frontier developer', rev:500, revOn:true, rnd:100, rndOn:false, frontierOn:true, removable:false,
             obligations:[
-              SHARED_OBL.frontierAIFramework(),
-              SHARED_OBL.independentAnnualAudit(),
-              SHARED_OBL.embeddedIVO(),
-              SHARED_OBL.civilPenalties(),
-              SHARED_OBL.frontierRiskFrameworkDisclosure()
+              mkObl('Frontier AI framework','Write, implement, comply with, and publicly post a safety framework covering catastrophic-risk thresholds, assessment procedures, mitigations, and cybersecurity protections for unreleased model weights.','GAAIA §111'),
+              mkObl('Independent annual third-party audit','Retain a CAISI-licensed Independent Verification Organization for audits of framework compliance, granting access to records, personnel, and systems.','GAAIA §112'),
+              mkObl('Embedded independent verification organizations','Government licenses independent verification organizations to assure that a company is meeting acceptable levels of risk mitigation.','GAAIA §112'),
+              mkObl('Civil penalties','Subject to regulator enforcement for violations of the framework, audit, or disclosure provisions, with penalties assessed per violation; no private right of action.','GAAIA §112'),
+              mkObl('Frontier risk framework disclosure','Confidentially submit to the CAISI Director a periodic report on catastrophic risk resulting from the developer\'s internal use of its frontier models, including internally deployed models.','GAAIA §111')
             ]}
         ],
         unassigned:[],
@@ -279,22 +263,20 @@
         tiers:[
           { id:'s1', name:'Frontier developer', rev:500, revOn:false, rnd:100, rndOn:false, frontierOn:true, removable:false,
             obligations:[
-              SHARED_OBL.transparencyReports(),
-              SHARED_OBL.criticalSafetyIncidentReporting(),
-              SHARED_OBL.whistleblowerProtections()
+              mkObl('Model transparency reports','Publish a transparency report at or before releasing or substantially modifying a frontier model, including a contact mechanism, release date, supported languages, output modalities, intended uses, and any generally applicable restrictions.','SB 315 §10'),
+              mkObl('Critical safety-incident reporting','Report critical safety incidents within 72 hours of discovery — within 24 hours where there is imminent risk of death or serious injury.','SB 315 §15'),
+              mkObl('Whistleblower protections','May not enforce rules preventing employees from disclosing activity that poses a specific and substantial danger to public health or safety; must maintain internal reporting channels.','SB 315 §20')
             ]},
           { id:'s2', name:'Large frontier developer', rev:500, revOn:true, rnd:100, rndOn:false, frontierOn:true, removable:false,
             obligations:[
-              SHARED_OBL.frontierAIFramework(),
-              SHARED_OBL.largeFrontierDeveloperDisclosure(),
-              SHARED_OBL.independentAnnualAudit(),
-              SHARED_OBL.civilPenalties(),
-              SHARED_OBL.frontierRiskFrameworkDisclosure()
+              mkObl('Frontier AI framework','Write, publish, implement, and comply with a documented safety framework covering catastrophic-risk assessment, capability thresholds, and cybersecurity controls.','SB 315 §10'),
+              mkObl('Large frontier developer disclosure','In the transparency report, include summaries of catastrophic-risk assessments, their results, the extent of third-party evaluator involvement, and other steps taken under the frontier AI framework.','SB 315 §10'),
+              mkObl('Independent annual third-party audit','Retain an independent auditor for annual audits of safety-framework compliance and provide all materials reasonably necessary.','SB 315 §10'),
+              mkObl('Civil penalties','Subject to Attorney General enforcement — fines up to $1M per violation, up to $3M for subsequent violations; no private right of action.','SB 315 §25'),
+              mkObl('Frontier risk framework disclosure','Confidentially submit to the regulator a periodic report on catastrophic risk resulting from the developer\'s internal use of its frontier models, including internally deployed models.','SB 315 §10')
             ]}
         ],
-        unassigned:[
-          SHARED_OBL.embeddedIVO()
-        ],
+        unassigned:[],
         firms:labFirms(),
         lockFirms:false
       })
