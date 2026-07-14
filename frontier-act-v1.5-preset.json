@@ -1,0 +1,173 @@
+{
+  "version": 1,
+  "exported": "2026-07-14T00:00:00.000Z",
+  "tab": "modeler",
+  "note": "FRONTIER Act (H.R. ___, discussion draft v1.5). Tier floors reflect Sec. 2(p) and 2(w): a large/very large frontier developer must clear BOTH the revenue and AI R&D floors (36-month lookback), so both floors are on with combine 'and'. The 36-month lookback itself isn't representable — firm figures are effectively point-in-time. Firm revenue/AI R&D figures match the app's default lab roster (see LAB_FIGURES in index.html).",
+  "tiers": [
+    {
+      "id": "f1",
+      "name": "Frontier developer",
+      "rev": 50,
+      "revOn": false,
+      "rnd": 1000,
+      "rndOn": false,
+      "frontierOn": true,
+      "removable": false,
+      "obligations": [
+        {
+          "id": "o1",
+          "t": "Model transparency reports",
+          "d": "Before or concurrently with deploying a new or substantially modified frontier model, publish a machine-readable report covering a contact mechanism, release date, supported languages, output modalities, intended uses, restrictions, each catastrophic-risk assessment and its results, and third-party involvement. Confidential deployments may defer publication if the report goes to the Under Secretary.",
+          "s": "FRONTIER §4(d)"
+        },
+        {
+          "id": "o2",
+          "t": "No false or misleading statements",
+          "d": "May not knowingly make an inaccurate statement or convey a false impression in a transparency report; good-faith, reasonable statements excepted.",
+          "s": "FRONTIER §4(e)"
+        },
+        {
+          "id": "o3",
+          "t": "Redaction justification and retention",
+          "d": "Redactions in published reports are limited to trade secrets, risk-prevention mechanisms, cybersecurity, public safety, national security, or legal compliance; each must be described and justified, the redacted material retained 5 years, and an unredacted copy transmitted to the Under Secretary.",
+          "s": "FRONTIER §4(f)"
+        },
+        {
+          "id": "o4",
+          "t": "Critical safety-incident reporting",
+          "d": "Report a critical safety incident (weight exfiltration, materialized catastrophic risk, loss of control, deceptive subversion of controls) to the Under Secretary within 72 hours of reasonable belief; within 24 hours to law enforcement if it poses imminent risk of death or serious physical injury.",
+          "s": "FRONTIER §4(g)-(h)"
+        },
+        {
+          "id": "o5",
+          "t": "Emergency-order exposure",
+          "d": "The Secretary of Commerce may issue provisional (45-day) and final (90-day, renewable) orders suspending or restricting development, deployment, or internal use of a model presenting imminent catastrophic risk; violations carry civil penalties up to $10M per violation per day and criminal penalties up to $1M and 10 years for willful violations.",
+          "s": "FRONTIER §8"
+        },
+        {
+          "id": "o6",
+          "t": "Civil penalties (transparency title)",
+          "d": "Violations of the transparency and reporting title are subject to civil penalties up to $1M per violation, each day a separate violation, enforceable by the U.S. Attorney General and opted-in State Attorneys General.",
+          "s": "FRONTIER §4(j)"
+        }
+      ]
+    },
+    {
+      "id": "f2",
+      "name": "Large frontier developer",
+      "rev": 50,
+      "revOn": true,
+      "rnd": 1000,
+      "rndOn": true,
+      "combine": "and",
+      "frontierOn": true,
+      "removable": false,
+      "obligations": [
+        {
+          "id": "o7",
+          "t": "Frontier AI framework",
+          "d": "Write, implement, comply with, and publish a frontier AI framework covering standards incorporation, catastrophic-risk thresholds and assessments, deployment and internal-use decisions, third-party assessment, framework updating, model-weight cybersecurity, incident response, and internal governance; must meet the Under Secretary's minimum framework regulations.",
+          "s": "FRONTIER §4(a), §3(b)(2)"
+        },
+        {
+          "id": "o8",
+          "t": "Annual framework review and update justification",
+          "d": "Review the framework at least annually, republish if updated, and publish a justification within 30 days of any material modification.",
+          "s": "FRONTIER §4(b)"
+        },
+        {
+          "id": "o9",
+          "t": "Independent annual compliance audit",
+          "d": "Retain an independent third party annually (no cross financial interest, no results-contingent pay) to audit framework compliance with full access; publish a redacted report and high-level summary within 30 days and transmit copies to the Under Secretary and Attorney General; retain unredacted report while any model is deployed plus 5 years.",
+          "s": "FRONTIER §4(c)"
+        },
+        {
+          "id": "o10",
+          "t": "Confidential catastrophic-risk reporting",
+          "d": "Submit through the Under Secretary's confidential mechanism, at least every 3 months, a summary of assessments of catastrophic risks arising from internal use of frontier models, including internally deployed models.",
+          "s": "FRONTIER §4(g)(2)"
+        },
+        {
+          "id": "o11",
+          "t": "Registration and disclosure statement",
+          "d": "May not develop, deploy, or operate a frontier model without a current disclosure statement filed with the Under Secretary and fees paid; statement identifies the developer, offices, 5%+ beneficial owners (50%+ if publicly traded), and three points of contact; renewed annually or upon ownership transfer or material change; $10,000-per-day penalty for noncompliance.",
+          "s": "FRONTIER §4(k)"
+        }
+      ]
+    },
+    {
+      "id": "f3",
+      "name": "Very large frontier developer",
+      "rev": 1000,
+      "revOn": true,
+      "rnd": 10000,
+      "rndOn": true,
+      "combine": "and",
+      "frontierOn": true,
+      "removable": false,
+      "obligations": [
+        {
+          "id": "o12",
+          "t": "Retain a licensed IVO",
+          "d": "Retain an independent verification organization licensed by the Under Secretary for ongoing assessment of the adequacy of the frontier AI framework, governance, risk-monitoring, and mitigations for achieving acceptable levels of catastrophic risk mitigation, covering internal use as well as third-party release.",
+          "s": "FRONTIER §5(b)"
+        },
+        {
+          "id": "o13",
+          "t": "IVO access",
+          "d": "Grant the IVO timely access on request to unredacted materials, records, personnel, systems, and other information reasonably necessary; security protocols must be narrowly tailored to protect trade secrets and confidential business information, and any material limitation is described in the assessment report.",
+          "s": "FRONTIER §5(e)"
+        },
+        {
+          "id": "o14",
+          "t": "Assessment and post-assessment cycle",
+          "d": "IVO submits assessment reports at least every 6 months to the developer and Under Secretary simultaneously; within 14 days the developer describes corrective actions to the IVO, the IVO opines on adequacy within 7 days, and within 30 days the developer files a post-assessment report with the Under Secretary including key findings and the IVO opinion.",
+          "s": "FRONTIER §5(f)-(g)"
+        },
+        {
+          "id": "o15",
+          "t": "Out-of-cycle supplemental reports",
+          "d": "When the IVO issues a supplemental report (prior findings invalid, corrective actions inadequate, or prior representations misleading), respond to the IVO within 7 days with corrective actions and submit the response plus the IVO's opinion to the Under Secretary within 21 days.",
+          "s": "FRONTIER §5(i)"
+        },
+        {
+          "id": "o16",
+          "t": "Ad hoc assessments",
+          "d": "Obtain additional assessments whenever the Under Secretary requires them to reproduce or validate findings, evaluate corrective-action implementation, or monitor significant risk changes, including after a critical safety incident or substantial modification.",
+          "s": "FRONTIER §5(h)"
+        },
+        {
+          "id": "o17",
+          "t": "Public disclosure of assessment reports",
+          "d": "Within 30 days of receiving an assessment report, publish a high-level summary and a redacted copy, and transmit the redacted report to the Under Secretary, Attorney General, and opted-in State Attorneys General; redactions are subject to overbreadth review by the Under Secretary.",
+          "s": "FRONTIER §5(j), (m)"
+        },
+        {
+          "id": "o18",
+          "t": "Recordkeeping and unredacted access",
+          "d": "Retain unredacted assessment reports and supporting materials for at least 5 years after each assessment, and provide the Under Secretary and Attorney General access to unredacted reports and materials on request.",
+          "s": "FRONTIER §5(l), (n)"
+        },
+        {
+          "id": "o19",
+          "t": "Civil penalties (independent-verification title)",
+          "d": "Violations of the assessment, access, reporting, disclosure, or opt-in provisions, or material misrepresentations in a post-assessment report, are subject to civil penalties up to $1M per violation, each day a separate violation; IVOs may refer violations for enforcement and must refer imminent catastrophic risks to the Secretary within 72 hours.",
+          "s": "FRONTIER §5(p)"
+        }
+      ]
+    }
+  ],
+  "unassigned": [],
+  "firms": [
+    { "name": "OpenAI", "rev": 25000, "rnd": 28000, "frontier": true },
+    { "name": "Anthropic", "rev": 47000, "rnd": 20000, "frontier": true },
+    { "name": "Google DeepMind", "rev": 402836, "rnd": 91447, "frontier": true },
+    { "name": "xAI", "rev": 2000, "rnd": 15000, "frontier": true },
+    { "name": "Meta", "rev": 200970, "rnd": 72200, "frontier": true },
+    { "name": "Microsoft", "rev": 281724, "rnd": 88000, "frontier": true },
+    { "name": "Reflection AI", "rev": 10, "rnd": 1800, "frontier": true },
+    { "name": "Thinking Machines Lab", "rev": 10, "rnd": 750, "frontier": true },
+    { "name": "ElevenLabs", "rev": 450, "rnd": 25, "frontier": true }
+  ],
+  "lockFirms": false
+}
